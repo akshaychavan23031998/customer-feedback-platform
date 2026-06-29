@@ -9,4 +9,10 @@ export const env = {
   mongodbUri:
     process.env.MONGODB_URI ||
     'mongodb://localhost:27017/customer-feedback-platform',
+  jwtSecret:
+    process.env.JWT_SECRET ||
+    'customer-feedback-platform-development-secret',
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || '1d',
+  adminEmail: process.env.ADMIN_EMAIL || 'admin@acowale.test',
+  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
 };
