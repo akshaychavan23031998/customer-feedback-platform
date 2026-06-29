@@ -49,7 +49,12 @@ function DashboardPage() {
   const [analytics, setAnalytics] = useState(emptyAnalytics);
   const [feedbackItems, setFeedbackItems] = useState([]);
   const [filters, setFilters] = useState(DEFAULT_FEEDBACK_FILTERS);
+  const [debouncedSearch, setDebouncedSearch] = useState(DEFAULT_FEEDBACK_FILTERS.search);
   const [dashboardState, setDashboardState] = useState({
+    isLoading: true,
+    error: '',
+  });
+  const [feedbackState, setFeedbackState] = useState({
     isLoading: true,
     error: '',
   });
@@ -59,7 +64,7 @@ function DashboardPage() {
 
   const apiFilters = useMemo(
     () => ({
-      search: filters.search,
+      search: debouncedSearch,
       category: filters.category,
       status: filters.status,
       rating: filters.rating,
@@ -67,13 +72,13 @@ function DashboardPage() {
       page: 1,
       limit: 50,
     }),
-    [filters],
+    [debouncedSearch, filters.category, filters.status, filters.rating, filters.sortBy],
   );
 
   useEffect(() => {
     let isMounted = true;
 
-    async function loadDashboardData() {
+    async function loadAnalytics() {
       try {
         setDashboardState({
           isLoading: true,
@@ -81,16 +86,14 @@ function DashboardPage() {
         });
 
         const analyticsResponse = await getAnalyticsSummary();
-        const feedbackResponse = await getFeedbackList(apiFilters);
 
         if (!isMounted) return;
 
-        if (!analyticsResponse.success || !feedbackResponse.success) {
-          throw new Error('Unable to load dashboard data.');
+        if (!analyticsResponse.success) {
+          throw new Error('Unable to load dashboard analytics.');
         }
 
         setAnalytics(analyticsResponse.data);
-        setFeedbackItems(feedbackResponse.data);
       } catch (error) {
         if (!isMounted) return;
 
@@ -109,7 +112,57 @@ function DashboardPage() {
       });
     }
 
-    loadDashboardData();
+    loadAnalytics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      setDebouncedSearch(filters.search);
+    }, 400);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [filters.search]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadFeedback() {
+      try {
+        setFeedbackState({
+          isLoading: true,
+          error: '',
+        });
+
+        const feedbackResponse = await getFeedbackList(apiFilters);
+
+        if (!isMounted) return;
+
+        if (!feedbackResponse.success) {
+          throw new Error('Unable to load feedback list.');
+        }
+
+        setFeedbackItems(feedbackResponse.data);
+        setFeedbackState({
+          isLoading: false,
+          error: '',
+        });
+      } catch (error) {
+        if (!isMounted) return;
+
+        setFeedbackState({
+          isLoading: false,
+          error: error.message || 'Something went wrong while loading feedback.',
+        });
+      }
+    }
+
+    loadFeedback();
 
     return () => {
       isMounted = false;
@@ -273,7 +326,11 @@ function DashboardPage() {
         </div>
 
         <div className="mt-6">
-          <FeedbackTable feedbackItems={feedbackItems} />
+          <FeedbackTable
+            feedbackItems={feedbackItems}
+            isLoading={feedbackState.isLoading}
+            error={feedbackState.error}
+          />
         </div>
       </section>
     </main>
