@@ -29,3 +29,10 @@ export const feedbackFormSchema = z.object({
     .min(10, 'Comment must be at least 10 characters.')
     .max(500, 'Comment must be less than 500 characters.'),
 });
+
+export const loginFormSchema = z.object({
+  email: z.string().trim().email('Please enter a valid email address.'),
+  password: z
+    .string()
+    .min(6, 'Password must be at least 6 characters.'),
+});
