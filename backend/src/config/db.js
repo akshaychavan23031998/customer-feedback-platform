@@ -2,13 +2,33 @@ import mongoose from 'mongoose';
 
 import { env } from './env.js';
 
-export async function connectDatabase() {
-  try {
-    const connection = await mongoose.connect(env.mongodbUri);
+let cachedConnection = null;
+let cachedConnectionPromise = null;
 
-    console.log(`MongoDB connected: ${connection.connection.host}`);
+export async function connectDatabase() {
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
+  }
+
+  if (!cachedConnectionPromise) {
+    cachedConnectionPromise = mongoose.connect(env.mongodbUri, {
+      serverSelectionTimeoutMS: 20000,
+      socketTimeoutMS: 45000,
+      maxPoolSize: 5,
+    });
+  }
+
+  try {
+    cachedConnection = await cachedConnectionPromise;
+
+    console.log(`MongoDB connected: ${cachedConnection.connection.host}`);
+
+    return cachedConnection;
   } catch (error) {
+    cachedConnectionPromise = null;
+    cachedConnection = null;
+
     console.error('MongoDB connection failed:', error.message);
-    process.exit(1);
+    throw error;
   }
 }
