@@ -64,3 +64,10 @@ export async function loginAdminController(req, res, next) {
     return next(error);
   }
 }
+
+export function logoutAdminController(req, res) {
+  return res.status(200).json({
+    success: true,
+    message: 'Logout successful.',
+  });
+}

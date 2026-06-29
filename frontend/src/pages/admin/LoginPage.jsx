@@ -7,7 +7,6 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import FormFieldError from '../../components/common/FormFieldError';
 import { loginAdmin } from '../../services/authService';
-import { MOCK_ADMIN_CREDENTIALS } from '../../utils/auth.mock';
 import { setStoredAuth } from '../../utils/authStorage';
 import { loginFormSchema } from '../../utils/validationSchemas';
 
@@ -34,31 +33,38 @@ function LoginPage() {
   });
 
   async function onSubmit(formValues) {
-    setAuthState({ type: '', message: '' });
+    try {
+      setAuthState({ type: '', message: '' });
 
-    const response = await loginAdmin(formValues);
+      const response = await loginAdmin(formValues);
 
-    if (!response.success) {
+      if (!response.success) {
+        setAuthState({
+          type: 'error',
+          message: response.message || 'Invalid email or password.',
+        });
+        return;
+      }
+
+      setStoredAuth({
+        token: response.data.token,
+        user: response.data.user,
+      });
+
+      setAuthState({
+        type: 'success',
+        message: 'Login successful. Redirecting to dashboard...',
+      });
+
+      setTimeout(() => {
+        navigate('/admin/dashboard');
+      }, 500);
+    } catch (error) {
       setAuthState({
         type: 'error',
-        message: response.message || 'Invalid email or password.',
+        message: error.message || 'Unable to login. Please try again.',
       });
-      return;
     }
-
-    setStoredAuth({
-      token: response.data.token,
-      user: response.data.user,
-    });
-
-    setAuthState({
-      type: 'success',
-      message: 'Login successful. Redirecting to dashboard...',
-    });
-
-    setTimeout(() => {
-      navigate('/admin/dashboard');
-    }, 500);
   }
 
   return (
@@ -78,8 +84,8 @@ function LoginPage() {
 
         <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
           <p className="font-semibold">Demo credentials</p>
-          <p className="mt-1">Email: {MOCK_ADMIN_CREDENTIALS.email}</p>
-          <p>Password: {MOCK_ADMIN_CREDENTIALS.password}</p>
+          <p className="mt-1">Email: admin@acowale.test</p>
+          <p>Password: password123</p>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="mt-6 space-y-5" noValidate>

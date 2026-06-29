@@ -19,6 +19,7 @@ import RecentSubmissions from '../../components/dashboard/RecentSubmissions';
 import StatCard from '../../components/dashboard/StatCard';
 import { DEFAULT_FEEDBACK_FILTERS } from '../../constants/feedback.constants';
 import { getAnalyticsSummary } from '../../services/analyticsService';
+import { logoutAdmin } from '../../services/authService';
 import { getFeedbackList } from '../../services/feedbackService';
 import { clearStoredAuth, getStoredAuthUser } from '../../utils/authStorage';
 
@@ -52,6 +53,7 @@ function DashboardPage() {
     isLoading: true,
     error: '',
   });
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const adminUser = getStoredAuthUser();
 
@@ -116,9 +118,17 @@ function DashboardPage() {
     };
   }, [apiFilters]);
 
-  function handleLogout() {
-    clearStoredAuth();
-    navigate('/admin/login');
+  async function handleLogout() {
+    try {
+      setIsLoggingOut(true);
+      await logoutAdmin();
+    } catch {
+      // Even if server logout fails, local auth should still be cleared.
+    } finally {
+      clearStoredAuth();
+      setIsLoggingOut(false);
+      navigate('/admin/login');
+    }
   }
 
   if (dashboardState.isLoading) {
@@ -191,7 +201,12 @@ function DashboardPage() {
               </span>
             </div>
 
-            <Button variant="secondary" onClick={handleLogout} className="gap-2">
+            <Button
+              variant="secondary"
+              onClick={handleLogout}
+              isLoading={isLoggingOut}
+              className="gap-2"
+            >
               <LogOut size={16} />
               Logout
             </Button>
