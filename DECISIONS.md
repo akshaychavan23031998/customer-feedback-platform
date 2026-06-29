@@ -512,9 +512,9 @@ All AI-generated suggestions were reviewed, tested, modified, and validated befo
 
 ---
 
-## 18. What I Would Improve With More Time
+## 18. What I Would Do With One More Week
 
-If more time was available, I would add:
+If I had one more week, I would add:
 
 * Unit tests for validators and services.
 * React component tests.
@@ -530,7 +530,51 @@ If more time was available, I would add:
 
 ---
 
-## 19. Final Decision Summary
+## 19. Most Difficult Challenge
+
+The most difficult challenge was making a traditional Express backend behave reliably on Vercel serverless functions.
+
+Locally, the backend can connect to MongoDB once when `src/server.js` starts. In production, Vercel can create fresh function instances, so connecting on every request risks slow responses, connection spikes, and timeouts. The fix was to create a dedicated serverless entrypoint in `backend/api/index.js` and cache both the active MongoDB connection and any in-progress connection promise.
+
+Swagger also needed production-specific work. `swagger-ui-express` worked locally, but static UI assets were not reliable in the serverless deployment. Serving `/api/docs.json` separately and loading Swagger UI from a CDN made the docs work consistently.
+
+---
+
+## 20. One Place AI Helped
+
+AI helped most during deployment debugging. It helped identify that the local Express entrypoint and the Vercel serverless entrypoint needed to be different, and it suggested checking MongoDB connection reuse instead of treating the dashboard timeout as only a frontend problem.
+
+I still validated the suggestions manually by reading the code paths, checking environment variables, testing the deployed URLs, and adjusting the implementation to match this project.
+
+---
+
+## 21. One Place I Disagreed With AI
+
+One suggestion was to add a full admin-user model and registration flow. I disagreed because it would increase scope without improving the core assignment outcome.
+
+For this version, a single admin configured through environment variables is a better tradeoff. It keeps the system secure enough for the machine test, avoids unnecessary user-management complexity, and leaves a clear upgrade path for role-based access control later.
+
+---
+
+## 22. What Breaks First At 100k Users
+
+The first pressure point would likely be the dashboard feedback list and analytics aggregation.
+
+At small scale, fetching recent feedback and calculating category or rating summaries directly from MongoDB is acceptable. At 100,000 users, the system would need stronger indexes, pagination limits, cached analytics, background aggregation jobs, and possibly separate read models for dashboard charts.
+
+The public feedback endpoint would also need stronger abuse protection: stricter rate limits, spam detection, request fingerprinting, and observability around failed submissions.
+
+---
+
+## 23. What I Would Improve, Change, Or Challenge
+
+I would improve the assignment by asking candidates to include one operational scenario, such as: "Your dashboard times out in production but works locally. How do you debug it?"
+
+That would test production thinking more directly than adding more UI requirements. It would also reveal whether the candidate understands deployment logs, database connections, environment variables, API contracts, and frontend error handling.
+
+---
+
+## 24. Final Decision Summary
 
 | Area          | Decision                         |
 | ------------- | -------------------------------- |

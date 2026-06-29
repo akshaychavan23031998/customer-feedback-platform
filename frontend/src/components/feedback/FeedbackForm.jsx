@@ -51,22 +51,29 @@ function FeedbackForm() {
       source: 'Web',
     };
 
-    const response = await submitFeedback(payload);
+    try {
+      const response = await submitFeedback(payload);
 
-    if (!response.success) {
+      if (!response.success) {
+        setSubmitState({
+          type: 'error',
+          message: response.message || 'Unable to submit feedback. Please try again.',
+        });
+        return;
+      }
+
+      setSubmitState({
+        type: 'success',
+        message: 'Thank you! Your feedback has been submitted successfully.',
+      });
+
+      reset(defaultValues);
+    } catch {
       setSubmitState({
         type: 'error',
-        message: response.message || 'Unable to submit feedback. Please try again.',
+        message: 'Unable to submit feedback right now. Please check your connection and try again.',
       });
-      return;
     }
-
-    setSubmitState({
-      type: 'success',
-      message: 'Thank you! Your feedback has been submitted successfully.',
-    });
-
-    reset(defaultValues);
   }
 
   return (

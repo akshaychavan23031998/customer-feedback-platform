@@ -80,11 +80,6 @@ function DashboardPage() {
           error: '',
         });
 
-        // const [analyticsResponse, feedbackResponse] = await Promise.all([
-        //   getAnalyticsSummary(),
-        //   getFeedbackList(apiFilters),
-        // ]);
-
         const analyticsResponse = await getAnalyticsSummary();
         const feedbackResponse = await getFeedbackList(apiFilters);
 
