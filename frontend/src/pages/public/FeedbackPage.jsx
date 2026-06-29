@@ -1,3 +1,5 @@
+import FeedbackForm from '../../components/feedback/FeedbackForm';
+
 function FeedbackPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10">
@@ -12,11 +14,10 @@ function FeedbackPage() {
 
         <p className="mt-3 text-slate-600">
           Share your thoughts, issues, or suggestions with the Acowale team.
+          Your feedback helps us improve the product experience.
         </p>
 
-        <div className="mt-8 rounded-xl border border-dashed border-slate-300 p-6 text-slate-500">
-          Feedback form will be built here.
-        </div>
+        <FeedbackForm />
       </section>
     </main>
   );
