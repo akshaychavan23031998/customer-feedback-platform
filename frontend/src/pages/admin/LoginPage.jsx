@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 
 import Button from '../../components/common/Button';
 import FormFieldError from '../../components/common/FormFieldError';
-import { MOCK_ADMIN_CREDENTIALS, mockAdminLogin } from '../../utils/auth.mock';
+import { loginAdmin } from '../../services/authService';
+import { MOCK_ADMIN_CREDENTIALS } from '../../utils/auth.mock';
 import { setStoredAuth } from '../../utils/authStorage';
 import { loginFormSchema } from '../../utils/validationSchemas';
 
@@ -35,12 +36,12 @@ function LoginPage() {
   async function onSubmit(formValues) {
     setAuthState({ type: '', message: '' });
 
-    const response = await mockAdminLogin(formValues);
+    const response = await loginAdmin(formValues);
 
     if (!response.success) {
       setAuthState({
         type: 'error',
-        message: response.message,
+        message: response.message || 'Invalid email or password.',
       });
       return;
     }

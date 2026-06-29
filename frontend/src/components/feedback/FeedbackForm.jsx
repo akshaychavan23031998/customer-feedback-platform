@@ -6,6 +6,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import Button from '../common/Button';
 import FormFieldError from '../common/FormFieldError';
 import { FEEDBACK_CATEGORIES, RATING_OPTIONS } from '../../constants/feedback.constants';
+import { submitFeedback } from '../../services/feedbackService';
 import { feedbackFormSchema } from '../../utils/validationSchemas';
 
 const defaultValues = {
@@ -50,11 +51,15 @@ function FeedbackForm() {
       source: 'Web',
     };
 
-    console.log('Feedback payload ready for API:', payload);
+    const response = await submitFeedback(payload);
 
-    await new Promise((resolve) => {
-      setTimeout(resolve, 700);
-    });
+    if (!response.success) {
+      setSubmitState({
+        type: 'error',
+        message: response.message || 'Unable to submit feedback. Please try again.',
+      });
+      return;
+    }
 
     setSubmitState({
       type: 'success',

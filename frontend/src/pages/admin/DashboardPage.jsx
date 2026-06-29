@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Archive,
   CheckCircle2,
@@ -18,19 +18,91 @@ import RatingDistributionChart from '../../components/dashboard/RatingDistributi
 import RecentSubmissions from '../../components/dashboard/RecentSubmissions';
 import StatCard from '../../components/dashboard/StatCard';
 import { DEFAULT_FEEDBACK_FILTERS } from '../../constants/feedback.constants';
-import { mockAnalyticsResponse } from '../../data/analytics.mock';
-import { mockFeedbackResponse } from '../../data/feedback.mock';
+import { getAnalyticsSummary } from '../../services/analyticsService';
+import { getFeedbackList } from '../../services/feedbackService';
 import { clearStoredAuth, getStoredAuthUser } from '../../utils/authStorage';
 import { filterFeedbackItems, sortFeedbackItems } from '../../utils/feedbackFilters';
+
+const emptyAnalytics = {
+  overview: {
+    totalFeedback: 0,
+    totalNew: 0,
+    totalInReview: 0,
+    totalResolved: 0,
+    totalArchived: 0,
+    averageRating: 0,
+  },
+  categoryDistribution: [],
+  ratingDistribution: [],
+  recentSubmissions: [],
+  trends: {
+    todayCount: 0,
+    yesterdayCount: 0,
+    weeklyCount: 0,
+    monthlyCount: 0,
+  },
+};
 
 function DashboardPage() {
   const navigate = useNavigate();
 
-  const analytics = mockAnalyticsResponse.data;
-  const feedbackItems = mockFeedbackResponse.data;
+  const [analytics, setAnalytics] = useState(emptyAnalytics);
+  const [feedbackItems, setFeedbackItems] = useState([]);
+  const [filters, setFilters] = useState(DEFAULT_FEEDBACK_FILTERS);
+  const [dashboardState, setDashboardState] = useState({
+    isLoading: true,
+    error: '',
+  });
+
   const adminUser = getStoredAuthUser();
 
-  const [filters, setFilters] = useState(DEFAULT_FEEDBACK_FILTERS);
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadDashboardData() {
+      try {
+        setDashboardState({
+          isLoading: true,
+          error: '',
+        });
+
+        const [analyticsResponse, feedbackResponse] = await Promise.all([
+          getAnalyticsSummary(),
+          getFeedbackList(),
+        ]);
+
+        if (!isMounted) return;
+
+        if (!analyticsResponse.success || !feedbackResponse.success) {
+          throw new Error('Unable to load dashboard data.');
+        }
+
+        setAnalytics(analyticsResponse.data);
+        setFeedbackItems(feedbackResponse.data);
+      } catch (error) {
+        if (!isMounted) return;
+
+        setDashboardState({
+          isLoading: false,
+          error: error.message || 'Something went wrong while loading dashboard data.',
+        });
+        return;
+      }
+
+      if (!isMounted) return;
+
+      setDashboardState({
+        isLoading: false,
+        error: '',
+      });
+    }
+
+    loadDashboardData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredFeedbackItems = useMemo(() => {
     const filteredItems = filterFeedbackItems(feedbackItems, filters);
@@ -41,6 +113,43 @@ function DashboardPage() {
   function handleLogout() {
     clearStoredAuth();
     navigate('/admin/login');
+  }
+
+  if (dashboardState.isLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8">
+        <section className="rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm font-semibold uppercase tracking-wide text-blue-600">
+            Admin Console
+          </p>
+          <h1 className="mt-3 text-2xl font-bold text-slate-950">
+            Loading dashboard...
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">
+            Please wait while we fetch feedback insights.
+          </p>
+        </section>
+      </main>
+    );
+  }
+
+  if (dashboardState.error) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-slate-100 px-4 py-8">
+        <section className="max-w-md rounded-2xl bg-white p-8 text-center shadow-sm ring-1 ring-slate-200">
+          <p className="text-sm font-semibold uppercase tracking-wide text-red-600">
+            Dashboard Error
+          </p>
+          <h1 className="mt-3 text-2xl font-bold text-slate-950">
+            Unable to load dashboard
+          </h1>
+          <p className="mt-2 text-sm text-slate-500">{dashboardState.error}</p>
+          <Button className="mt-6" onClick={() => window.location.reload()}>
+            Retry
+          </Button>
+        </section>
+      </main>
+    );
   }
 
   return (
