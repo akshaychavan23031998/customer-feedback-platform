@@ -1,8 +1,8 @@
 import { getAnalyticsSummary } from '../services/feedback.service.js';
 
-export function getAnalyticsSummaryController(req, res, next) {
+export async function getAnalyticsSummaryController(req, res, next) {
   try {
-    const analytics = getAnalyticsSummary();
+    const analytics = await getAnalyticsSummary();
 
     return res.status(200).json({
       success: true,

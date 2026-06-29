@@ -1,4 +1,5 @@
-import { allowedCategories, allowedStatuses, feedbackStore } from '../data/feedback.store.js';
+import { allowedCategories, allowedStatuses } from '../data/feedback.store.js';
+import Feedback from '../models/Feedback.js';
 
 function getPaginationMetadata({ page, limit, totalRecords }) {
   const totalPages = Math.ceil(totalRecords / limit) || 1;
@@ -14,14 +15,26 @@ function getPaginationMetadata({ page, limit, totalRecords }) {
 }
 
 function normalizeText(value) {
-  return String(value || '').trim().toLowerCase();
+  return String(value || '').trim();
 }
 
-export function createFeedback(payload, requestMetadata = {}) {
-  const now = new Date().toISOString();
+function mapFeedbackDocument(document) {
+  return {
+    id: document._id.toString(),
+    category: document.category,
+    comment: document.comment,
+    rating: document.rating,
+    status: document.status,
+    source: document.source,
+    user: document.user,
+    metadata: document.metadata,
+    createdAt: document.createdAt,
+    updatedAt: document.updatedAt,
+  };
+}
 
-  const feedback = {
-    id: `fb_${Date.now()}`,
+export async function createFeedback(payload, requestMetadata = {}) {
+  const feedback = await Feedback.create({
     category: payload.category,
     comment: payload.comment.trim(),
     rating: Number(payload.rating),
@@ -36,16 +49,12 @@ export function createFeedback(payload, requestMetadata = {}) {
       device: 'Web',
       ipAddress: requestMetadata.ipAddress || 'hidden',
     },
-    createdAt: now,
-    updatedAt: now,
-  };
+  });
 
-  feedbackStore.unshift(feedback);
-
-  return feedback;
+  return mapFeedbackDocument(feedback);
 }
 
-export function getFeedbackList(query = {}) {
+export async function getFeedbackList(query = {}) {
   const page = Math.max(Number(query.page) || 1, 1);
   const limit = Math.min(Math.max(Number(query.limit) || 10, 1), 50);
   const search = normalizeText(query.search);
@@ -54,58 +63,53 @@ export function getFeedbackList(query = {}) {
   const rating = query.rating || 'All';
   const sortBy = query.sortBy || 'latest';
 
-  let filteredFeedback = [...feedbackStore];
+  const mongoQuery = {};
 
   if (search) {
-    filteredFeedback = filteredFeedback.filter((item) => {
-      const searchableText = [
-        item.comment,
-        item.category,
-        item.status,
-        item.user?.name,
-        item.user?.email,
-      ]
-        .join(' ')
-        .toLowerCase();
-
-      return searchableText.includes(search);
-    });
+    mongoQuery.$or = [
+      { comment: { $regex: search, $options: 'i' } },
+      { category: { $regex: search, $options: 'i' } },
+      { status: { $regex: search, $options: 'i' } },
+      { 'user.name': { $regex: search, $options: 'i' } },
+      { 'user.email': { $regex: search, $options: 'i' } },
+    ];
   }
 
   if (category !== 'All' && allowedCategories.includes(category)) {
-    filteredFeedback = filteredFeedback.filter((item) => item.category === category);
+    mongoQuery.category = category;
   }
 
   if (status !== 'All' && allowedStatuses.includes(status)) {
-    filteredFeedback = filteredFeedback.filter((item) => item.status === status);
+    mongoQuery.status = status;
   }
 
   if (rating !== 'All') {
-    filteredFeedback = filteredFeedback.filter((item) => item.rating === Number(rating));
+    mongoQuery.rating = Number(rating);
   }
 
-  filteredFeedback.sort((a, b) => {
-    if (sortBy === 'oldest') {
-      return new Date(a.createdAt) - new Date(b.createdAt);
-    }
+  let sortOption = { createdAt: -1 };
 
-    if (sortBy === 'highestRating') {
-      return b.rating - a.rating;
-    }
+  if (sortBy === 'oldest') {
+    sortOption = { createdAt: 1 };
+  }
 
-    if (sortBy === 'lowestRating') {
-      return a.rating - b.rating;
-    }
+  if (sortBy === 'highestRating') {
+    sortOption = { rating: -1, createdAt: -1 };
+  }
 
-    return new Date(b.createdAt) - new Date(a.createdAt);
-  });
+  if (sortBy === 'lowestRating') {
+    sortOption = { rating: 1, createdAt: -1 };
+  }
 
-  const totalRecords = filteredFeedback.length;
-  const startIndex = (page - 1) * limit;
-  const paginatedFeedback = filteredFeedback.slice(startIndex, startIndex + limit);
+  const totalRecords = await Feedback.countDocuments(mongoQuery);
+
+  const feedbackDocuments = await Feedback.find(mongoQuery)
+    .sort(sortOption)
+    .skip((page - 1) * limit)
+    .limit(limit);
 
   return {
-    data: paginatedFeedback,
+    data: feedbackDocuments.map(mapFeedbackDocument),
     pagination: getPaginationMetadata({
       page,
       limit,
@@ -114,41 +118,78 @@ export function getFeedbackList(query = {}) {
   };
 }
 
-export function getAnalyticsSummary() {
-  const totalFeedback = feedbackStore.length;
+export async function getAnalyticsSummary() {
+  const totalFeedback = await Feedback.countDocuments();
 
-  const totalNew = feedbackStore.filter((item) => item.status === 'New').length;
-  const totalInReview = feedbackStore.filter((item) => item.status === 'In Review').length;
-  const totalResolved = feedbackStore.filter((item) => item.status === 'Resolved').length;
-  const totalArchived = feedbackStore.filter((item) => item.status === 'Archived').length;
+  const [totalNew, totalInReview, totalResolved, totalArchived] = await Promise.all([
+    Feedback.countDocuments({ status: 'New' }),
+    Feedback.countDocuments({ status: 'In Review' }),
+    Feedback.countDocuments({ status: 'Resolved' }),
+    Feedback.countDocuments({ status: 'Archived' }),
+  ]);
+
+  const ratingStats = await Feedback.aggregate([
+    {
+      $group: {
+        _id: null,
+        averageRating: { $avg: '$rating' },
+      },
+    },
+  ]);
 
   const averageRating =
-    totalFeedback === 0
+    ratingStats.length === 0
       ? 0
-      : Number(
-          (
-            feedbackStore.reduce((sum, item) => sum + Number(item.rating || 0), 0) /
-            totalFeedback
-          ).toFixed(1),
-        );
+      : Number((ratingStats[0].averageRating || 0).toFixed(1));
+
+  const categoryCounts = await Feedback.aggregate([
+    {
+      $group: {
+        _id: '$category',
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const categoryCountMap = categoryCounts.reduce((accumulator, item) => {
+    accumulator[item._id] = item.count;
+    return accumulator;
+  }, {});
 
   const categoryDistribution = allowedCategories.map((category) => {
-    const count = feedbackStore.filter((item) => item.category === category).length;
+    const count = categoryCountMap[category] || 0;
 
     return {
       category,
       count,
-      percentage: totalFeedback === 0 ? 0 : Number(((count / totalFeedback) * 100).toFixed(1)),
+      percentage:
+        totalFeedback === 0 ? 0 : Number(((count / totalFeedback) * 100).toFixed(1)),
     };
   });
 
-  const ratingDistribution = [1, 2, 3, 4, 5].map((rating) => ({
-    rating,
-    count: feedbackStore.filter((item) => item.rating === rating).length,
+  const ratingCounts = await Feedback.aggregate([
+    {
+      $group: {
+        _id: '$rating',
+        count: { $sum: 1 },
+      },
+    },
+  ]);
+
+  const ratingCountMap = ratingCounts.reduce((accumulator, item) => {
+    accumulator[item._id] = item.count;
+    return accumulator;
+  }, {});
+
+  const ratingDistribution = [1, 2, 3, 4, 5].map((ratingValue) => ({
+    rating: ratingValue,
+    count: ratingCountMap[ratingValue] || 0,
   }));
 
-  const recentSubmissions = feedbackStore.slice(0, 3).map((item) => ({
-    id: item.id,
+  const recentDocuments = await Feedback.find().sort({ createdAt: -1 }).limit(3);
+
+  const recentSubmissions = recentDocuments.map((item) => ({
+    id: item._id.toString(),
     category: item.category,
     comment: item.comment,
     rating: item.rating,

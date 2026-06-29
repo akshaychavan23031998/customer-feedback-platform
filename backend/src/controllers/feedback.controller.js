@@ -4,7 +4,7 @@ import {
 } from '../services/feedback.service.js';
 import { validateCreateFeedbackPayload } from '../validators/feedback.validator.js';
 
-export function createFeedbackController(req, res, next) {
+export async function createFeedbackController(req, res, next) {
   try {
     const validationErrors = validateCreateFeedbackPayload(req.body);
 
@@ -16,7 +16,7 @@ export function createFeedbackController(req, res, next) {
       });
     }
 
-    const feedback = createFeedback(req.body, {
+    const feedback = await createFeedback(req.body, {
       userAgent: req.get('user-agent'),
       ipAddress: req.ip,
     });
@@ -31,9 +31,9 @@ export function createFeedbackController(req, res, next) {
   }
 }
 
-export function getFeedbackListController(req, res, next) {
+export async function getFeedbackListController(req, res, next) {
   try {
-    const result = getFeedbackList(req.query);
+    const result = await getFeedbackList(req.query);
 
     return res.status(200).json({
       success: true,
