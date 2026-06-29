@@ -54,11 +54,7 @@ app.get('/api/docs.json', (req, res) => {
   return res.status(200).json(swaggerSpec);
 });
 
-app.get('/api/docs', (req, res) => {
-  return res.redirect('/api/docs/');
-});
-
-app.get('/api/docs/', (req, res) => {
+function renderSwaggerHtml(req, res) {
   const swaggerJsonUrl = `${env.apiPublicUrl}/api/docs.json`;
 
   return res.status(200).send(`<!DOCTYPE html>
@@ -99,7 +95,10 @@ app.get('/api/docs/', (req, res) => {
     </script>
   </body>
 </html>`);
-});
+}
+
+app.get('/api/docs', renderSwaggerHtml);
+app.get('/api/docs/', renderSwaggerHtml);
 
 app.get('/', (req, res) => {
   return res.status(200).json({
