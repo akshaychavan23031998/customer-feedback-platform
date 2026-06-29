@@ -4,10 +4,13 @@ import {
   CheckCircle2,
   Clock3,
   Inbox,
+  LogOut,
   Star,
   TrendingUp,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
+import Button from '../../components/common/Button';
 import CategoryDistributionChart from '../../components/dashboard/CategoryDistributionChart';
 import FeedbackFilters from '../../components/dashboard/FeedbackFilters';
 import FeedbackTable from '../../components/dashboard/FeedbackTable';
@@ -17,14 +20,15 @@ import StatCard from '../../components/dashboard/StatCard';
 import { DEFAULT_FEEDBACK_FILTERS } from '../../constants/feedback.constants';
 import { mockAnalyticsResponse } from '../../data/analytics.mock';
 import { mockFeedbackResponse } from '../../data/feedback.mock';
-import {
-  filterFeedbackItems,
-  sortFeedbackItems,
-} from '../../utils/feedbackFilters';
+import { clearStoredAuth, getStoredAuthUser } from '../../utils/authStorage';
+import { filterFeedbackItems, sortFeedbackItems } from '../../utils/feedbackFilters';
 
 function DashboardPage() {
+  const navigate = useNavigate();
+
   const analytics = mockAnalyticsResponse.data;
   const feedbackItems = mockFeedbackResponse.data;
+  const adminUser = getStoredAuthUser();
 
   const [filters, setFilters] = useState(DEFAULT_FEEDBACK_FILTERS);
 
@@ -33,6 +37,11 @@ function DashboardPage() {
 
     return sortFeedbackItems(filteredItems, filters.sortBy);
   }, [feedbackItems, filters]);
+
+  function handleLogout() {
+    clearStoredAuth();
+    navigate('/admin/login');
+  }
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8">
@@ -48,16 +57,29 @@ function DashboardPage() {
             </h1>
 
             <p className="mt-2 text-slate-600">
-              Analyse feedback trends, category distribution, and recent
-              submissions.
+              Analyse feedback trends, category distribution, and recent submissions.
             </p>
           </div>
 
-          <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
-            Weekly feedback:{' '}
-            <span className="font-semibold text-slate-950">
-              {analytics.trends.weeklyCount}
-            </span>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+              Weekly feedback:{' '}
+              <span className="font-semibold text-slate-950">
+                {analytics.trends.weeklyCount}
+              </span>
+            </div>
+
+            <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
+              Admin:{' '}
+              <span className="font-semibold text-slate-950">
+                {adminUser?.name || 'Admin'}
+              </span>
+            </div>
+
+            <Button variant="secondary" onClick={handleLogout} className="gap-2">
+              <LogOut size={16} />
+              Logout
+            </Button>
           </div>
         </div>
 

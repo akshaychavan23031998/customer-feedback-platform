@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import Button from '../../components/common/Button';
 import FormFieldError from '../../components/common/FormFieldError';
 import { MOCK_ADMIN_CREDENTIALS, mockAdminLogin } from '../../utils/auth.mock';
+import { setStoredAuth } from '../../utils/authStorage';
 import { loginFormSchema } from '../../utils/validationSchemas';
 
 const defaultValues = {
@@ -44,8 +45,10 @@ function LoginPage() {
       return;
     }
 
-    localStorage.setItem('acowale_admin_token', response.data.token);
-    localStorage.setItem('acowale_admin_user', JSON.stringify(response.data.user));
+    setStoredAuth({
+      token: response.data.token,
+      user: response.data.user,
+    });
 
     setAuthState({
       type: 'success',
