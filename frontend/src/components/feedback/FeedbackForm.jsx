@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Send } from 'lucide-react';
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import Button from '../common/Button';
 import FormFieldError from '../common/FormFieldError';
@@ -26,14 +26,18 @@ function FeedbackForm() {
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(feedbackFormSchema),
     defaultValues,
   });
 
-  const commentValue = watch('comment') || '';
+  const commentValue =
+    useWatch({
+      control,
+      name: 'comment',
+    }) || '';
 
   async function onSubmit(formValues) {
     setSubmitState({ type: '', message: '' });
@@ -67,6 +71,7 @@ function FeedbackForm() {
           <label htmlFor="name" className="text-sm font-medium text-slate-700">
             Name <span className="text-slate-400">(optional)</span>
           </label>
+
           <input
             id="name"
             type="text"
@@ -74,6 +79,7 @@ function FeedbackForm() {
             className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             {...register('name')}
           />
+
           <FormFieldError message={errors.name?.message} />
         </div>
 
@@ -81,6 +87,7 @@ function FeedbackForm() {
           <label htmlFor="email" className="text-sm font-medium text-slate-700">
             Email <span className="text-slate-400">(optional)</span>
           </label>
+
           <input
             id="email"
             type="email"
@@ -88,6 +95,7 @@ function FeedbackForm() {
             className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
             {...register('email')}
           />
+
           <FormFieldError message={errors.email?.message} />
         </div>
       </div>
@@ -96,6 +104,7 @@ function FeedbackForm() {
         <label htmlFor="category" className="text-sm font-medium text-slate-700">
           Feedback category
         </label>
+
         <select
           id="category"
           className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
@@ -108,11 +117,13 @@ function FeedbackForm() {
             </option>
           ))}
         </select>
+
         <FormFieldError message={errors.category?.message} />
       </div>
 
       <div>
         <span className="text-sm font-medium text-slate-700">Rating</span>
+
         <div className="mt-2 grid grid-cols-5 gap-2">
           {RATING_OPTIONS.map((rating) => (
             <label
@@ -124,6 +135,7 @@ function FeedbackForm() {
             </label>
           ))}
         </div>
+
         <FormFieldError message={errors.rating?.message} />
       </div>
 
@@ -132,6 +144,7 @@ function FeedbackForm() {
           <label htmlFor="comment" className="text-sm font-medium text-slate-700">
             Comments
           </label>
+
           <span className="text-xs text-slate-400">{commentValue.length}/500</span>
         </div>
 
@@ -142,6 +155,7 @@ function FeedbackForm() {
           className="mt-2 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           {...register('comment')}
         />
+
         <FormFieldError message={errors.comment?.message} />
       </div>
 
