@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react';
 import {
   Archive,
   CheckCircle2,
@@ -8,13 +9,30 @@ import {
 } from 'lucide-react';
 
 import CategoryDistributionChart from '../../components/dashboard/CategoryDistributionChart';
+import FeedbackFilters from '../../components/dashboard/FeedbackFilters';
+import FeedbackTable from '../../components/dashboard/FeedbackTable';
 import RatingDistributionChart from '../../components/dashboard/RatingDistributionChart';
 import RecentSubmissions from '../../components/dashboard/RecentSubmissions';
 import StatCard from '../../components/dashboard/StatCard';
+import { DEFAULT_FEEDBACK_FILTERS } from '../../constants/feedback.constants';
 import { mockAnalyticsResponse } from '../../data/analytics.mock';
+import { mockFeedbackResponse } from '../../data/feedback.mock';
+import {
+  filterFeedbackItems,
+  sortFeedbackItems,
+} from '../../utils/feedbackFilters';
 
 function DashboardPage() {
   const analytics = mockAnalyticsResponse.data;
+  const feedbackItems = mockFeedbackResponse.data;
+
+  const [filters, setFilters] = useState(DEFAULT_FEEDBACK_FILTERS);
+
+  const filteredFeedbackItems = useMemo(() => {
+    const filteredItems = filterFeedbackItems(feedbackItems, filters);
+
+    return sortFeedbackItems(filteredItems, filters.sortBy);
+  }, [feedbackItems, filters]);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8">
@@ -30,12 +48,16 @@ function DashboardPage() {
             </h1>
 
             <p className="mt-2 text-slate-600">
-              Analyse feedback trends, category distribution, and recent submissions.
+              Analyse feedback trends, category distribution, and recent
+              submissions.
             </p>
           </div>
 
           <div className="rounded-xl bg-white px-4 py-3 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">
-            Weekly feedback: <span className="font-semibold text-slate-950">{analytics.trends.weeklyCount}</span>
+            Weekly feedback:{' '}
+            <span className="font-semibold text-slate-950">
+              {analytics.trends.weeklyCount}
+            </span>
           </div>
         </div>
 
@@ -46,30 +68,35 @@ function DashboardPage() {
             helperText="All submissions"
             icon={Inbox}
           />
+
           <StatCard
             title="New"
             value={analytics.overview.totalNew}
             helperText="Needs attention"
             icon={Clock3}
           />
+
           <StatCard
             title="In review"
             value={analytics.overview.totalInReview}
             helperText="Being checked"
             icon={TrendingUp}
           />
+
           <StatCard
             title="Resolved"
             value={analytics.overview.totalResolved}
             helperText="Completed"
             icon={CheckCircle2}
           />
+
           <StatCard
             title="Archived"
             value={analytics.overview.totalArchived}
             helperText="No action"
             icon={Archive}
           />
+
           <StatCard
             title="Avg rating"
             value={`${analytics.overview.averageRating}/5`}
@@ -85,6 +112,18 @@ function DashboardPage() {
 
         <div className="mt-8">
           <RecentSubmissions submissions={analytics.recentSubmissions} />
+        </div>
+
+        <div className="mt-8">
+          <FeedbackFilters
+            filters={filters}
+            onFilterChange={setFilters}
+            totalResults={filteredFeedbackItems.length}
+          />
+        </div>
+
+        <div className="mt-6">
+          <FeedbackTable feedbackItems={filteredFeedbackItems} />
         </div>
       </section>
     </main>
