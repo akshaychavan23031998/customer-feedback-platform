@@ -1,13 +1,7 @@
-import { mockAnalyticsResponse } from '../data/analytics.mock';
-
-function simulateNetworkDelay(delay = 500) {
-  return new Promise((resolve) => {
-    setTimeout(resolve, delay);
-  });
-}
+import { apiClient } from './apiClient';
 
 export async function getAnalyticsSummary() {
-  await simulateNetworkDelay();
+  const response = await apiClient.get('/analytics/summary');
 
-  return mockAnalyticsResponse;
+  return response.data;
 }

@@ -21,7 +21,6 @@ import { DEFAULT_FEEDBACK_FILTERS } from '../../constants/feedback.constants';
 import { getAnalyticsSummary } from '../../services/analyticsService';
 import { getFeedbackList } from '../../services/feedbackService';
 import { clearStoredAuth, getStoredAuthUser } from '../../utils/authStorage';
-import { filterFeedbackItems, sortFeedbackItems } from '../../utils/feedbackFilters';
 
 const emptyAnalytics = {
   overview: {
@@ -56,6 +55,19 @@ function DashboardPage() {
 
   const adminUser = getStoredAuthUser();
 
+  const apiFilters = useMemo(
+    () => ({
+      search: filters.search,
+      category: filters.category,
+      status: filters.status,
+      rating: filters.rating,
+      sortBy: filters.sortBy,
+      page: 1,
+      limit: 50,
+    }),
+    [filters],
+  );
+
   useEffect(() => {
     let isMounted = true;
 
@@ -68,7 +80,7 @@ function DashboardPage() {
 
         const [analyticsResponse, feedbackResponse] = await Promise.all([
           getAnalyticsSummary(),
-          getFeedbackList(),
+          getFeedbackList(apiFilters),
         ]);
 
         if (!isMounted) return;
@@ -102,13 +114,7 @@ function DashboardPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
-
-  const filteredFeedbackItems = useMemo(() => {
-    const filteredItems = filterFeedbackItems(feedbackItems, filters);
-
-    return sortFeedbackItems(filteredItems, filters.sortBy);
-  }, [feedbackItems, filters]);
+  }, [apiFilters]);
 
   function handleLogout() {
     clearStoredAuth();
@@ -249,12 +255,12 @@ function DashboardPage() {
           <FeedbackFilters
             filters={filters}
             onFilterChange={setFilters}
-            totalResults={filteredFeedbackItems.length}
+            totalResults={feedbackItems.length}
           />
         </div>
 
         <div className="mt-6">
-          <FeedbackTable feedbackItems={filteredFeedbackItems} />
+          <FeedbackTable feedbackItems={feedbackItems} />
         </div>
       </section>
     </main>
