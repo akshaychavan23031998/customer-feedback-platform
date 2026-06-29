@@ -2,7 +2,6 @@ import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
 import morgan from 'morgan';
-import swaggerUi from 'swagger-ui-express';
 
 import { env } from './config/env.js';
 import { swaggerSpec } from './config/swagger.js';
@@ -26,6 +25,7 @@ app.use(
   helmet({
     contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: false,
   }),
 );
 
@@ -50,7 +50,56 @@ if (env.nodeEnv === 'development') {
   app.use(morgan('dev'));
 }
 
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/api/docs.json', (req, res) => {
+  return res.status(200).json(swaggerSpec);
+});
+
+app.get('/api/docs', (req, res) => {
+  return res.redirect('/api/docs/');
+});
+
+app.get('/api/docs/', (req, res) => {
+  const swaggerJsonUrl = `${env.apiPublicUrl}/api/docs.json`;
+
+  return res.status(200).send(`<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Customer Feedback Platform API Docs</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui.min.css"
+    />
+    <style>
+      body {
+        margin: 0;
+        background: #f8fafc;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="swagger-ui"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.17.14/swagger-ui-standalone-preset.min.js"></script>
+    <script>
+      window.onload = function () {
+        window.ui = SwaggerUIBundle({
+          url: '${swaggerJsonUrl}',
+          dom_id: '#swagger-ui',
+          deepLinking: true,
+          presets: [
+            SwaggerUIBundle.presets.apis,
+            SwaggerUIStandalonePreset
+          ],
+          layout: 'StandaloneLayout'
+        });
+      };
+    </script>
+  </body>
+</html>`);
+});
 
 app.get('/', (req, res) => {
   return res.status(200).json({
