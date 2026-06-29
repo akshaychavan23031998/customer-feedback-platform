@@ -6,6 +6,8 @@ import morgan from 'morgan';
 import { env } from './config/env.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import { notFoundMiddleware } from './middlewares/notFound.middleware.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import feedbackRoutes from './routes/feedback.routes.js';
 import healthRoutes from './routes/health.routes.js';
 
 const app = express();
@@ -34,6 +36,8 @@ app.get('/', (req, res) => {
 });
 
 app.use('/api/health', healthRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
