@@ -22,7 +22,12 @@ const allowedOrigins = [
   'http://localhost:5175',
 ];
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  }),
+);
 
 app.use(
   cors({
